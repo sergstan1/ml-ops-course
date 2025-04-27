@@ -1,0 +1,29 @@
+[project]
+name = "wikics-segment-prediction"
+version = "0.1.0"
+description = "This project aims to predict computer science segments in Wikipedia's graph structure (where vertices represent pages and edges represent hyperlinks). The solution can be useful for contextual search within Wikipedia."
+authors = [
+    {name = "Stanko Sergey",email = "stanko.sa@phystech.edu"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "ipykernel (>=6.29.5,<7.0.0)",
+    "torch (==2.2.0)",
+    "dgl",
+    "optuna (>=4.2.1,<5.0.0)",
+    "ogb (>=1.3.6,<2.0.0)",
+    "ipywidgets (>=8.1.5,<9.0.0)",
+    "lightgbm (>=4.6.0,<5.0.0)",
+    "scikit-optimize (>=0.10.2,<0.11.0)",
+    "dvc (>=3.59.1,<4.0.0)"
+]
+[tool.poetry.dependencies]
+dgl = {file = "dgl-2.4.0+cu121-cp312-cp312-manylinux1_x86_64.whl"}
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+package-mode = false
