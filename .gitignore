@@ -172,3 +172,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+/dgl-2.4.0+cu121-cp312-cp312-manylinux1_x86_64.whl
