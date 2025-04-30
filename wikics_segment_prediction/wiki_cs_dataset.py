@@ -1,6 +1,7 @@
 import json
 
 import dgl
+import dvc.api
 import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
@@ -11,14 +12,12 @@ from .utils import edges_to_pairwise_matrix
 class WikiCSDataset:
     """A dataset class for loading and processing the WikiCS graph dataset.
 
-    This class handles loading the dataset
-    from a JSON file, creating graph structures,
-    and generating train/validation/test splits.
-    The dataset contains node features,
-    labels, and edges between nodes.
+    This class handles loading the dataset from DVC storage,
+    creating graph structures, and generating train/validation/test splits.
+    The dataset contains node features, labels, and edges between nodes.
 
     Args:
-        file_path (str): Path to the raw JSON data file.
+        file_path (str): Path to the raw JSON data file in DVC storage.
              Defaults to "data/wikics/raw/data.json".
         test_size (float): Proportion of data to use for
              test & validation splits. Defaults to 0.5.
@@ -44,7 +43,7 @@ class WikiCSDataset:
         val_split=0.5,
         random_state=42,
     ):
-        with open(file_path) as json_data:
+        with dvc.api.open(file_path, remote="data") as json_data:
             data = json.load(json_data)
 
         self.features = torch.FloatTensor(data["features"])
