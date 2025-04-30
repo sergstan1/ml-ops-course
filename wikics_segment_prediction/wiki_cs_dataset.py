@@ -47,8 +47,8 @@ class WikiCSDataset:
         with open(file_path) as json_data:
             data = json.load(json_data)
 
-        self.features = data["features"]
-        self.labels = np.array(data["labels"])
+        self.features = torch.FloatTensor(data["features"])
+        self.labels = torch.LongTensor(np.array(data["labels"]))
         self.edges = np.array(edges_to_pairwise_matrix(data["links"]))
 
         full_idx = np.arange(len(self.labels))
@@ -72,13 +72,3 @@ class WikiCSDataset:
         self.graph = dgl.graph(
             (self.edges[:, 0], self.edges[:, 1]), num_nodes=len(self.labels)
         )
-
-    @property
-    def feature_tensor(self):
-        """torch.FloatTensor: Node features converted to float tensor"""
-        return torch.FloatTensor(self.features)
-
-    @property
-    def label_tensor(self):
-        """torch.LongTensor: Node labels converted to long tensor"""
-        return torch.LongTensor(self.labels)

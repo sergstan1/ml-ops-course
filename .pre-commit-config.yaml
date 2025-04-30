@@ -16,7 +16,7 @@ repos:
       rev: v5.7.0
       hooks:
           - id: isort
-
+            args: ["--profile", "black", "--filter-files"]
     - repo: https://github.com/psf/black
       rev: 22.3.0
       hooks:
@@ -27,3 +27,4 @@ repos:
       hooks:
           - id: flake8
             additional_dependencies: [flake8-bugbear]
+            args: [--max-line-length=90]

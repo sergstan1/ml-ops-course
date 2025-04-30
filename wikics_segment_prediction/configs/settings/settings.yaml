@@ -1,0 +1,3 @@
+device: "cuda"
+save_dir_plots: "plots"
+save_dir_model: "models"

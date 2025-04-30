@@ -1,0 +1,6 @@
+num_layers: 3
+hidden_dim: 256
+num_heads: 4
+hidden_dim_multiplier: 4
+dropout: 0.1
+lr: 3e-5
