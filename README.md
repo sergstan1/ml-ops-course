@@ -41,7 +41,7 @@ Using standard `train_test_split` with `random_state=42` for reproducibility.
 
 ### Main Model
 - PyTorch Lightning neural network
-- Architecture: 
+- Architecture:
   - Multiple layers (number to be tuned)
   - ReLU activation functions
 - Optimizer: Adam
