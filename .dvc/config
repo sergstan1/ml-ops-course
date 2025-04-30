@@ -1,0 +1,6 @@
+[core]
+    remote = models
+['remote "data"']
+    url = /home/sergstan/dvc_storage/data
+['remote "models"']
+    url = /home/sergstan/dvc_storage/models
