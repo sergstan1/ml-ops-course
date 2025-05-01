@@ -37,9 +37,12 @@ class GraphTransformerPL(pl.LightningModule):
         self.graph = dataset.graph.to(device)
         self.features = dataset.features.to(device)
         self.labels = dataset.labels.to(device)
-        self.train_idx = dataset.train_idx.to(device)
-        self.val_idx = dataset.val_idx.to(device)
-        self.test_idx = dataset.test_idx.to(device)
+        if dataset.train_idx is not None:
+            self.train_idx = dataset.train_idx.to(device)
+        if dataset.val_idx is not None:
+            self.val_idx = dataset.val_idx.to(device)
+        if dataset.test_idx is not None:
+            self.test_idx = dataset.test_idx.to(device)
 
         self.num_classes = int(self.labels.max().item() + 1)
         self.is_binary = self.num_classes == 2

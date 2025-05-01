@@ -1,15 +1,16 @@
+import csv
 import os
 from datetime import datetime
 
 import dvc.api
 import hydra
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig
 
-from .model import GraphTransformerPL
 from .modules.dgl_attention_module import DGLAttentionModule
-from .utils import save_metrics_to_csv
+from .pl_wrapper import GraphTransformerPL
 from .wiki_cs_dataset import WikiCSDataset
 
 
@@ -18,7 +19,14 @@ def main(cfg: DictConfig):
     device = cfg.settings.device
     torch.set_float32_matmul_precision("high")
 
-    dataset = WikiCSDataset()
+    test_idx_path = cfg.settings.test_idx_path
+
+    dataset = WikiCSDataset(
+        train_idx=None,
+        val_idx=None,
+        test_idx=torch.LongTensor(pd.read_parquet(test_idx_path)["index"].values),
+        file_path=cfg.train.data_path,
+    )
 
     pl_model = GraphTransformerPL(
         dataset=dataset,
@@ -54,12 +62,16 @@ def main(cfg: DictConfig):
 
     test_metrics["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    metrics_dir = cfg.settings.get("save_dir_metrics", "metrics")
-    os.makedirs(metrics_dir, exist_ok=True)
-    metrics_file = os.path.join(metrics_dir, "test_metrics.csv")
+    predictions_dir = cfg.settings.get("save_dir_predictions", "predictions")
+    os.makedirs(predictions_dir, exist_ok=True)
 
-    save_metrics_to_csv(test_metrics, metrics_file)
-    print(f"Metrics saved to: {metrics_file}")
+    labels_file = os.path.join(predictions_dir, "class_labels.csv")
+    with open(labels_file, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["class_index", "label"])
+        for idx, label in enumerate(dataset.labels):
+            writer.writerow([idx, label])
+    print(f"Class labels saved to: {labels_file}")
 
 
 if __name__ == "__main__":

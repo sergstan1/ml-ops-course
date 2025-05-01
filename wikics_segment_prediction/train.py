@@ -1,14 +1,15 @@
 import os
 
 import hydra
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import MLFlowLogger
 
-from .model import GraphTransformerPL
 from .modules.dgl_attention_module import DGLAttentionModule
+from .pl_wrapper import GraphTransformerPL
 from .wiki_cs_dataset import WikiCSDataset
 
 
@@ -20,6 +21,10 @@ class WikiCSTrainer:
         device = self.cfg.settings.device
         save_dir_plots = self.cfg.settings.save_dir_plots
         save_dir_model = self.cfg.settings.save_dir_model
+
+        train_idx_path = self.cfg.settings.train_idx_path
+        val_idx_path = self.cfg.settings.val_idx_path
+        test_idx_path = self.cfg.settings.test_idx_path
 
         experiment_name = OmegaConf.select(
             self.cfg, "mlflow.experiment_name", default="wiki_cs_experiment"
@@ -36,7 +41,12 @@ class WikiCSTrainer:
         params = OmegaConf.to_container(self.cfg, resolve=True)
         mlflow_logger.log_hyperparams(params)
 
-        dataset = WikiCSDataset()
+        dataset = WikiCSDataset(
+            train_idx=torch.LongTensor(pd.read_parquet(train_idx_path)["index"].values),
+            val_idx=torch.LongTensor(pd.read_parquet(val_idx_path)["index"].values),
+            test_idx=torch.LongTensor(pd.read_parquet(test_idx_path)["index"].values),
+            file_path=self.cfg.train.data_path,
+        )
         model = GraphTransformerPL(
             dataset,
             attention_module=DGLAttentionModule,

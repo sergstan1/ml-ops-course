@@ -1,10 +1,10 @@
 import json
+import typing as tp
 
 import dgl
 import dvc.api
 import numpy as np
 import torch
-from sklearn.model_selection import train_test_split
 
 from .utils import edges_to_pairwise_matrix
 
@@ -12,36 +12,47 @@ from .utils import edges_to_pairwise_matrix
 class WikiCSDataset:
     """A dataset class for loading and processing the WikiCS graph dataset.
 
-    This class handles loading the dataset from DVC storage,
-    creating graph structures, and generating train/validation/test splits.
-    The dataset contains node features, labels, and edges between nodes.
+    This class handles loading the WikiCS dataset from DVC storage and converting it into
+    a DGL graph with node features, labels, and optional predefined splits. The dataset
+    represents Wikipedia Computer Science articles
+    as nodes with links between them as edges.
 
     Args:
+        train_idx (Optional[torch.LongTensor]): Indices of nodes for training.
+            If None, no training split will be available.
+        val_idx (Optional[torch.LongTensor]): Indices of nodes for validation.
+            If None, no validation split will be available.
+        test_idx (Optional[torch.LongTensor]): Indices of nodes for testing.
+            If None, no test split will be available.
         file_path (str): Path to the raw JSON data file in DVC storage.
-             Defaults to "data/wikics/raw/data.json".
-        test_size (float): Proportion of data to use for
-             test & validation splits. Defaults to 0.5.
-        val_split (float): Proportion of the test/validation split
-             to use for validation. Defaults to 0.5.
-        random_state (int): Random
-             seed for reproducible splits. Defaults to 42.
+            Defaults to "data/wikics/raw/data.json".
 
     Attributes:
-        features (list): Node features from the dataset
-        labels (ndarray): Node labels as NumPy array
-        edges (ndarray): Edge connections as NumPy array
-        train_idx (Tensor): Training node indices
-        val_idx (Tensor): Validation node indices
-        test_idx (Tensor): Test node indices
-        graph (dgl.DGLGraph): Graph representation of the dataset
+        features (torch.FloatTensor): Node features tensor
+          of shape (num_nodes, feature_dim)
+        labels (torch.LongTensor): Node labels tensor of shape (num_nodes,)
+        edges (np.ndarray): Edge connections array of shape (num_edges, 2)
+        train_idx (Optional[torch.LongTensor]): Training node indices (if provided)
+        val_idx (Optional[torch.LongTensor]): Validation node indices (if provided)
+        test_idx (Optional[torch.LongTensor]): Test node indices (if provided)
+        graph (dgl.DGLGraph): Graph representation containing nodes and edges
+
+    Example:
+        >>> # With predefined splits
+        >>> dataset = WikiCSDataset(train_idx, val_idx, test_idx)
+        >>> # Without any splits
+        >>> dataset = WikiCSDataset(None, None, None)
+        >>> # Accessing graph data
+        >>> graph = dataset.graph
+        >>> features = dataset.features
     """
 
     def __init__(
         self,
-        file_path="data/wikics/raw/data.json",
-        test_size=0.5,
-        val_split=0.5,
-        random_state=42,
+        train_idx: tp.Optional[torch.LongTensor],
+        val_idx: tp.Optional[torch.LongTensor],
+        test_idx: tp.Optional[torch.LongTensor],
+        file_path: str = "data/wikics/raw/data.json",
     ):
         with dvc.api.open(file_path, remote="data") as json_data:
             data = json.load(json_data)
@@ -50,23 +61,9 @@ class WikiCSDataset:
         self.labels = torch.LongTensor(np.array(data["labels"]))
         self.edges = np.array(edges_to_pairwise_matrix(data["links"]))
 
-        full_idx = np.arange(len(self.labels))
-        train_idx, val_and_test_idx = train_test_split(
-            full_idx,
-            test_size=test_size,
-            random_state=random_state,
-            stratify=self.labels,
-        )
-        val_idx, test_idx = train_test_split(
-            val_and_test_idx,
-            test_size=val_split,
-            random_state=random_state,
-            stratify=self.labels[val_and_test_idx],
-        )
-
-        self.train_idx = torch.from_numpy(train_idx)
-        self.val_idx = torch.from_numpy(val_idx)
-        self.test_idx = torch.from_numpy(test_idx)
+        self.train_idx = train_idx
+        self.val_idx = val_idx
+        self.test_idx = test_idx
 
         self.graph = dgl.graph(
             (self.edges[:, 0], self.edges[:, 1]), num_nodes=len(self.labels)
