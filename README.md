@@ -81,6 +81,13 @@ If you want to run with a specific configuration, e.g. path to your data:
 poetry run python3 -m wikics_segment_prediction.train train.data_path=<data_path>
 ```
 
+Training also supports mlflow support, however, if you do not want to use it set mlflow.tracking_uri to null.
+To set mlflow uri you can run:
+
+```bash
+poetry run python3 -m wikics_segment_prediction.train mlflow.tracking_uri=<your_uri>
+```
+
 ## Infer
 
 After training the model, you can use it for inference on new data.
