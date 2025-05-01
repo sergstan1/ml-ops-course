@@ -3,8 +3,9 @@ import os
 import hydra
 import pytorch_lightning as pl
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import MLFlowLogger
 
 from .model import GraphTransformerPL
 from .modules.dgl_attention_module import DGLAttentionModule
@@ -19,6 +20,21 @@ class WikiCSTrainer:
         device = self.cfg.settings.device
         save_dir_plots = self.cfg.settings.save_dir_plots
         save_dir_model = self.cfg.settings.save_dir_model
+
+        experiment_name = OmegaConf.select(
+            self.cfg, "mlflow.experiment_name", default="wiki_cs_experiment"
+        )
+        run_name = OmegaConf.select(self.cfg, "mlflow.run_name", default="run_1")
+        tracking_uri = OmegaConf.select(self.cfg, "mlflow.tracking_uri", default=None)
+
+        mlflow_logger = MLFlowLogger(
+            experiment_name=experiment_name,
+            run_name=run_name,
+            tracking_uri=tracking_uri,
+        )
+
+        params = OmegaConf.to_container(self.cfg, resolve=True)
+        mlflow_logger.log_hyperparams(params)
 
         dataset = WikiCSDataset()
         model = GraphTransformerPL(
@@ -53,7 +69,7 @@ class WikiCSTrainer:
             accelerator="gpu" if device == "cuda" else "cpu",
             enable_progress_bar=True,
             log_every_n_steps=1,
-            logger=True,
+            logger=mlflow_logger,
         )
 
         trainer.fit(model)
@@ -78,6 +94,7 @@ class VisualizationCallback(pl.Callback):
         if self.save_dir_model is not None:
             final_model_path = os.path.join(self.save_dir_model, "final_model.pth")
             torch.save(pl_module.model.state_dict(), final_model_path)
+
         if self.save_dir_plots is not None:
             pl_module.plot_training_curve(self.save_dir_plots)
             pl_module.plot_validation_metrics(self.save_dir_plots)

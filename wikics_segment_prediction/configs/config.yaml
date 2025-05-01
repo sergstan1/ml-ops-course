@@ -2,3 +2,4 @@ defaults:
   - train: train
   - model: model
   - settings: settings
+  - mlflow: mlflow
