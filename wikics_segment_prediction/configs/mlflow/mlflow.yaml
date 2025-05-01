@@ -1,4 +1,3 @@
-mlflow:
-  experiment_name: "wiki_cs"
-  run_name: "run_1"
-  tracking_uri: "http://localhost:5000"
+experiment_name: "wiki_cs"
+run_name: "run_1"
+tracking_uri: "http://127.0.0.1:8080"

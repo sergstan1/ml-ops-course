@@ -37,17 +37,20 @@ class WikiCSTrainer:
         experiment_name = OmegaConf.select(
             self.cfg, "mlflow.experiment_name", default="wiki_cs_experiment"
         )
-        run_name = OmegaConf.select(self.cfg, "mlflow.run_name", default="run_1")
+        run_name = OmegaConf.select(
+            self.cfg, "mlflow.run_name", default="run_without_a_name"
+        )
         tracking_uri = OmegaConf.select(self.cfg, "mlflow.tracking_uri", default=None)
 
-        mlflow_logger = MLFlowLogger(
-            experiment_name=experiment_name,
-            run_name=run_name,
-            tracking_uri=tracking_uri,
-        )
-
         params = OmegaConf.to_container(self.cfg, resolve=True)
-        mlflow_logger.log_hyperparams(params)
+
+        if tracking_uri is not None:
+            mlflow_logger = MLFlowLogger(
+                experiment_name=experiment_name,
+                run_name=run_name,
+                tracking_uri=tracking_uri,
+            )
+            mlflow_logger.log_hyperparams(params)
 
         dataset = WikiCSDataset(
             train_idx=train_idx,
@@ -80,15 +83,26 @@ class WikiCSTrainer:
         callback = VisualizationCallback(
             save_dir_plots=save_dir_plots, save_dir_model=save_dir_model
         )
-        trainer = pl.Trainer(
-            max_steps=self.cfg.train.num_steps,
-            val_check_interval=1,
-            callbacks=[checkpoint_cb, callback],
-            accelerator="gpu" if device == "cuda" else "cpu",
-            enable_progress_bar=True,
-            log_every_n_steps=1,
-            logger=mlflow_logger,
-        )
+
+        if tracking_uri is not None:
+            trainer = pl.Trainer(
+                max_steps=self.cfg.train.num_steps,
+                val_check_interval=1,
+                callbacks=[checkpoint_cb, callback],
+                accelerator="gpu" if device == "cuda" else "cpu",
+                enable_progress_bar=True,
+                log_every_n_steps=1,
+                logger=mlflow_logger,
+            )
+        elif tracking_uri is None:
+            trainer = pl.Trainer(
+                max_steps=self.cfg.train.num_steps,
+                val_check_interval=1,
+                callbacks=[checkpoint_cb, callback],
+                accelerator="gpu" if device == "cuda" else "cpu",
+                enable_progress_bar=True,
+                log_every_n_steps=1,
+            )
 
         trainer.fit(model)
         trainer.test(model)
