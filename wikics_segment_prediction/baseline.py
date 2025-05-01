@@ -51,7 +51,6 @@ class DeepWalk:
             if len(neighbors) == 0:
                 break
 
-            # Convert neighbor to scalar for walk
             next_node = random.choice(neighbors)
             if isinstance(next_node, torch.Tensor):
                 next_scalar = next_node.item()
@@ -66,7 +65,6 @@ class DeepWalk:
     def generate_walks(self):
         walks = []
         nodes = []
-        # Convert all nodes to scalars
         for node in self.graph.nodes():
             if isinstance(node, torch.Tensor):
                 nodes.append(node.item())
