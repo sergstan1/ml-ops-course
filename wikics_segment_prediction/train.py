@@ -23,16 +23,7 @@ class WikiCSTrainer:
         save_dir_plots = self.cfg.settings.save_dir_plots
         save_dir_model = self.cfg.settings.save_dir_model
 
-        train_idx_path = self.cfg.settings.train_idx_path
-        val_idx_path = self.cfg.settings.val_idx_path
-        test_idx_path = self.cfg.settings.test_idx_path
-
-        with dvc.api.open(train_idx_path, remote="data", mode="rb") as train_parquet:
-            train_idx = torch.LongTensor(pd.read_parquet(train_parquet)["index"].values)
-        with dvc.api.open(val_idx_path, remote="data", mode="rb") as val_parquet:
-            val_idx = torch.LongTensor(pd.read_parquet(val_parquet)["index"].values)
-        with dvc.api.open(test_idx_path, remote="data", mode="rb") as test_parquet:
-            test_idx = torch.LongTensor(pd.read_parquet(test_parquet)["index"].values)
+        train_idx, val_idx, test_idx = self._load_indices()
 
         experiment_name = OmegaConf.select(
             self.cfg, "mlflow.experiment_name", default="wiki_cs_experiment"
@@ -43,6 +34,7 @@ class WikiCSTrainer:
         tracking_uri = OmegaConf.select(self.cfg, "mlflow.tracking_uri", default=None)
 
         params = OmegaConf.to_container(self.cfg, resolve=True)
+        mlflow_logger = None
 
         if tracking_uri is not None:
             mlflow_logger = MLFlowLogger(
@@ -72,6 +64,40 @@ class WikiCSTrainer:
             num_workers=self.cfg.train.num_workers,
         ).to(device)
 
+        trainer = self._configure_trainer(
+            tracking_uri, save_dir_plots, save_dir_model, device, mlflow_logger
+        )
+
+        trainer.fit(model)
+        trainer.test(model)
+
+        if save_dir_plots is not None:
+            model.plot_training_curve(save_dir_plots)
+            model.plot_validation_metrics(save_dir_plots)
+            model.plot_confusion_matrix("test", save_dir_plots)
+            if model.is_binary:
+                model.plot_confusion_matrix("val", save_dir_plots)
+
+        return model.model.cpu()
+
+    def _load_indices(self):
+        with dvc.api.open(
+            self.cfg.settings.train_idx_path, remote="data", mode="rb"
+        ) as f:
+            train_idx = torch.LongTensor(pd.read_parquet(f)["index"].values)
+        with dvc.api.open(
+            self.cfg.settings.val_idx_path, remote="data", mode="rb"
+        ) as f:
+            val_idx = torch.LongTensor(pd.read_parquet(f)["index"].values)
+        with dvc.api.open(
+            self.cfg.settings.test_idx_path, remote="data", mode="rb"
+        ) as f:
+            test_idx = torch.LongTensor(pd.read_parquet(f)["index"].values)
+        return train_idx, val_idx, test_idx
+
+    def _configure_trainer(
+        self, tracking_uri, save_dir_plots, save_dir_model, device, mlflow_logger
+    ):
         checkpoint_cb = ModelCheckpoint(
             monitor="val_f1",
             mode="max",
@@ -104,17 +130,7 @@ class WikiCSTrainer:
                 log_every_n_steps=1,
             )
 
-        trainer.fit(model)
-        trainer.test(model)
-
-        if save_dir_plots is not None:
-            model.plot_training_curve(save_dir_plots)
-            model.plot_validation_metrics(save_dir_plots)
-            model.plot_confusion_matrix("test", save_dir_plots)
-            if model.is_binary:
-                model.plot_confusion_matrix("val", save_dir_plots)
-
-        return model.model.cpu()
+        return trainer
 
 
 class VisualizationCallback(pl.Callback):
