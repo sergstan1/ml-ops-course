@@ -1,0 +1,6 @@
+  train_embeddings: true
+  walk_length: 40
+  num_walks: 10
+  window: 5
+  embedding_dim: 128
+  embeddings_path: "data/embeddings.parquet"
