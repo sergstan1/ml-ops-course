@@ -1,5 +1,6 @@
 import os
 
+import dvc.api
 import hydra
 import pandas as pd
 import pytorch_lightning as pl
@@ -26,6 +27,13 @@ class WikiCSTrainer:
         val_idx_path = self.cfg.settings.val_idx_path
         test_idx_path = self.cfg.settings.test_idx_path
 
+        with dvc.api.open(train_idx_path, remote="data", mode="rb") as train_parquet:
+            train_idx = torch.LongTensor(pd.read_parquet(train_parquet)["index"].values)
+        with dvc.api.open(val_idx_path, remote="data", mode="rb") as val_parquet:
+            val_idx = torch.LongTensor(pd.read_parquet(val_parquet)["index"].values)
+        with dvc.api.open(test_idx_path, remote="data", mode="rb") as test_parquet:
+            test_idx = torch.LongTensor(pd.read_parquet(test_parquet)["index"].values)
+
         experiment_name = OmegaConf.select(
             self.cfg, "mlflow.experiment_name", default="wiki_cs_experiment"
         )
@@ -42,9 +50,9 @@ class WikiCSTrainer:
         mlflow_logger.log_hyperparams(params)
 
         dataset = WikiCSDataset(
-            train_idx=torch.LongTensor(pd.read_parquet(train_idx_path)["index"].values),
-            val_idx=torch.LongTensor(pd.read_parquet(val_idx_path)["index"].values),
-            test_idx=torch.LongTensor(pd.read_parquet(test_idx_path)["index"].values),
+            train_idx=train_idx,
+            val_idx=val_idx,
+            test_idx=test_idx,
             file_path=self.cfg.train.data_path,
         )
         model = GraphTransformerPL(
