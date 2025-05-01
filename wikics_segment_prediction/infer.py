@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import dvc.api
 import hydra
 import pytorch_lightning as pl
 import torch
@@ -33,9 +34,12 @@ def main(cfg: DictConfig):
         num_workers=cfg.train.num_workers,
     ).to(device)
 
-    model_path = os.path.join(cfg.settings.save_dir_model, "final_model.pth")
-    state_dict = torch.load(model_path, map_location=device)
-    pl_model.model.load_state_dict(state_dict)
+    model_path = os.path.join(cfg.settings.save_dir_model, cfg.settings.model_name)
+
+    with dvc.api.open(model_path, remote="models", mode="rb") as saved_model:
+        checkpoint = torch.load(saved_model, map_location=device)
+
+    pl_model.model.load_state_dict(checkpoint)
     pl_model.eval()
 
     trainer = pl.Trainer(
