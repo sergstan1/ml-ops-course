@@ -1,65 +1,101 @@
 # WikiCS: Segment Prediction for Computer Science Wikipedia Pages
 
 ## Project Overview
-This project aims to predict computer science segments in Wikipedia's graph structure (where vertices represent pages and edges represent hyperlinks). The solution can be useful for contextual search within Wikipedia.
+
+This project focuses on predicting the segment membership of computer science-related Wikipedia pages using a graph-based structure. Each node represents a Wikipedia page, and each edge represents a hyperlink between pages. The main goal is to classify each page into one of the defined CS topic segments based solely on the graph topology.
 
 **Key Features:**
-- Predicts segment membership probabilities for Wikipedia pages
-- Works with graph structure embeddings only (no node features)
-- Provides baseline and neural network approaches
+
+- Predicts probabilities for each segment/class
+- Utilizes graph embeddings only (no textual/node features)
+- Supports baseline methods and neural network-based models
+- Visualizations of training results and segment distributions
+- Modular and extendable architecture
 
 ## Dataset
-The WikiCS dataset contains:
-- 11,701 vertices (Wikipedia pages)
-- 215,863 edges (hyperlinks)
-- Average vertex degree: 36.90
-- 10 target classes (segments)
 
-Dataset sources:
-- [PyTorch Geometric Documentation](https://pytorch-geometric.readthedocs.io/en/2.5.3/generated/torch_geometric.datasets.WikiCS.html)
-- [Papers With Code](https://paperswithcode.com/dataset/wiki-cs)
+The project uses the [WikiCS dataset](https://github.com/pmernyei/wiki-cs-dataset), which consists of:
 
-## Input/Output Format
-- **Input:** Wikipedia graph structure
-- **Output:** Probability vector (10 dimensions) for each test vertex
+- 11,701 Wikipedia pages as nodes
+- 215,000 edges representing hyperlinks
+- 10 semantic segments (classes) related to computer science disciplines
 
-## Metrics
-Primary evaluation metrics:
-- Micro-averaged F1-score
-- Macro-averaged F1-score
+The dataset can be accessed using `torch_geometric.datasets.WikiCS`. Note that it includes 20 distinct training/validation/test splits for robust evaluation.
 
-Target performance: ≥ 0.4 F1-score (baseline performance of logistic regression on graph embeddings)
+## Setup
 
-## Validation
-Using standard `train_test_split` with `random_state=42` for reproducibility.
+### Requirements
 
-## Modeling Approaches
-
-### Baseline Model
-1. Generate Instant Embeddings ([paper reference](https://arxiv.org/abs/2010.06992))
-2. Train logistic regression on these embeddings
-
-### Main Model
-- PyTorch Lightning neural network
-- Architecture:
-  - Multiple layers (number to be tuned)
-  - ReLU activation functions
-- Optimizer: Adam
-
-## Implementation
-The final model will be packaged as a library for predicting segments on current Wikipedia data.
-
-## Requirements
-- Python 3.x
+- Python 3.12
+- [Poetry](https://python-poetry.org/docs/) for environment management
 - PyTorch
 - PyTorch Geometric
-- PyTorch Lightning
-- scikit-learn
+- DGL (Deep Graph Library)
+- DVC (optional, for data version control)
 
-## Usage
-```python
-# Example usage will be provided after implementation
-from wikics_predictor import SegmentPredictor
+### Installation Steps
 
-model = SegmentPredictor.load_pretrained()
-predictions = model.predict(wiki_graph)
+1. Clone the repository:
+
+```bash
+git clone https://github.com/sergstan1/wikics-segment-prediction.git
+cd wikics-segment-prediction
+```
+
+2. Install dependencies using Poetry:
+
+```bash
+poetry install
+```
+
+3. Activate the virtual environment:
+
+```bash
+poetry shell
+```
+
+4. Pull data and models via DVC:
+
+```bash
+dvc pull
+```
+
+## Train
+
+To train a model from scratch, follow these steps:
+
+### 1. Data Loading
+
+The dataset is downloaded using a path to a json file with features and edge indices.
+Also you need to set a hydra config with path to train, val, test indices, stored as a pd.DataFrame with "index" column.
+
+### 2. Training the Model
+
+To train the default model:
+
+```bash
+poetry run python3 -m wikics_segment_prediction.train
+```
+
+If you want to run with a specific configuration, e.g. path to your data:
+
+```bash
+poetry run python3 -m wikics_segment_prediction.train train.data_path=<data_path>
+```
+
+## Infer
+
+After training the model, you can use it for inference on new data.
+Set a path to test data in hydra configuration, the same as in train.
+
+### Running Inference
+
+```bash
+poetry run python3 -m wikics_segment_prediction.infer
+```
+
+This will output predictions for each class per node.
+
+## Contact
+
+Project author: [sergstan1](https://github.com/sergstan1)
