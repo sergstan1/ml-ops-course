@@ -6,9 +6,7 @@ This project focuses on predicting the segment membership of computer science-re
 
 **Key Features:**
 
-- Predicts probabilities for each segment/class
-- Utilizes graph embeddings only (no textual/node features)
-- Supports baseline methods and neural network-based models
+- Predicts labels for each segment/class using custom GNN
 - Visualizations of training results and segment distributions
 - Modular and extendable architecture
 
