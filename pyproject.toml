@@ -31,7 +31,7 @@ dependencies = [
     "gdown (>=5.2.0,<6.0.0)"
 ]
 [tool.poetry.dependencies]
-dgl = {file = "dgl-2.4.0+cu121-cp312-cp312-manylinux1_x86_64.whl"}
+dgl = {file = "dgl-2.4.0+cu121-cp312-cp312-manylinux1_x86_64.whl", optional = true}
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
