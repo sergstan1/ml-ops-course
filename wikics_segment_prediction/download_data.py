@@ -15,9 +15,13 @@ class DataDownloader:
         gdown.download_folder(self.dvc_url, quiet=True)
 
 
-if __name__ == "__main__":
+def main():
     downloader = DataDownloader(
         "152ftcEEKftLs3WqUGKvaPo8H_gbneO53",
         "https://drive.google.com/drive/folders/177T5k6paCCu9td9zibOAIJ2b803neRF_?usp=drive_link",
     )
     downloader.download_data()
+
+
+if __name__ == "__main__":
+    main()

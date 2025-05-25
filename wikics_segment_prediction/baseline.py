@@ -93,7 +93,6 @@ class DeepWalk:
             try:
                 embeddings[idx] = model.wv[node_str]
             except KeyError:
-                # Handle isolated nodes with zero initialization
                 embeddings[idx] = np.zeros(self.embedding_dim)
                 print(f"Warning: Node {node_str} not found in walks, using zero vector")
 
