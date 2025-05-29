@@ -29,9 +29,9 @@ class DataDownloader:
         self.run_command(f"{sys.executable} -m pip install gdown")
 
     def download_data(self) -> None:
+        self.install_gdown()
         import gdown
 
-        self.install_gdown()
         self.run_command(f"gdown {self.dgl_id}")
         gdown.download_folder(self.dvc_url, quiet=True)
 
