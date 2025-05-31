@@ -39,7 +39,7 @@ class DataDownloader:
 def main():
     downloader = DataDownloader(
         "152ftcEEKftLs3WqUGKvaPo8H_gbneO53",
-        "https://drive.google.com/drive/folders/177T5k6paCCu9td9zibOAIJ2b803neRF_?usp=drive_link",
+        "https://drive.google.com/drive/folders/146jwbgPPPmPC2v582SxlwW_e-N2XsjEZ?usp=drive_link",
     )
     downloader.download_data()
 
