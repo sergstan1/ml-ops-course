@@ -20,11 +20,13 @@ def main(cfg: DictConfig):
     torch.set_float32_matmul_precision("high")
 
     test_idx_path = cfg.settings.test_idx_path
+    with dvc.api.open(test_idx_path, remote="data", mode="rb") as f:
+        test_idx = torch.LongTensor(pd.read_parquet(f)["index"].values)
 
     dataset = WikiCSDataset(
         train_idx=None,
         val_idx=None,
-        test_idx=torch.LongTensor(pd.read_parquet(test_idx_path)["index"].values),
+        test_idx=test_idx,
         file_path=cfg.train.data_path,
     )
 
