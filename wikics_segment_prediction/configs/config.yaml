@@ -4,3 +4,4 @@ defaults:
   - settings: settings
   - mlflow: mlflow
   - deepwalk: deepwalk
+  - baseline: baseline
