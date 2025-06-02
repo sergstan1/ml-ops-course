@@ -1,5 +1,6 @@
 import os
 import random
+from pathlib import Path
 
 import dvc.api
 import gensim
@@ -238,14 +239,13 @@ class DeepWalkLinearTrainer:
 
     def _save_artifacts(self, model):
         if self.cfg.settings.save_dir_model:
-            emb_path = os.path.join(
-                self.cfg.settings.save_dir_model, "deepwalk_embeddings.pt"
-            )
-            torch.save(self.embeddings, emb_path)
+            save_dir = Path(self.cfg.settings.save_dir_model)
+            save_dir.mkdir(parents=True, exist_ok=True)
 
-            model_path = os.path.join(
-                self.cfg.settings.save_dir_model, "deepwalk_linear.pth"
-            )
+            emb_path = save_dir / "deepwalk_embeddings.pt"
+            model_path = save_dir / "deepwalk_linear.pth"
+
+            torch.save(self.embeddings, emb_path)
             torch.save(model.state_dict(), model_path)
 
     def _load_indices(self):
@@ -267,17 +267,21 @@ class DeepWalkLinearTrainer:
         return train_idx, val_idx, test_idx
 
     def _configure_trainer(self):
+        save_dir = self.cfg.settings.save_dir_model
+        if save_dir is not None:
+            save_dir = Path(save_dir)
+
         checkpoint_cb = ModelCheckpoint(
             monitor="val_f1",
             mode="max",
             save_top_k=1,
-            dirpath=self.cfg.settings.save_dir_model,
+            dirpath=save_dir,
             filename="deepwalk_best_model",
         )
 
         logger = self._get_logger()
         return pl.Trainer(
-            max_epochs=self.cfg.train.num_epochs,
+            max_epochs=self.cfg.baseline.num_steps,
             accelerator="gpu" if self.cfg.settings.device == "cuda" else "cpu",
             callbacks=[checkpoint_cb],
             logger=logger,
