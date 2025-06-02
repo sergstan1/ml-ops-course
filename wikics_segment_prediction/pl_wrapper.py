@@ -56,6 +56,7 @@ class GraphTransformerPL(pl.LightningModule):
             hidden_dim_multiplier,
             self.num_classes,
             dropout,
+            self.graph,
         )
 
         self.criterion = (
@@ -74,18 +75,18 @@ class GraphTransformerPL(pl.LightningModule):
 
         self.num_workers = num_workers
 
-    def forward(self, graph, features):
-        return self.model(graph, features)
+    def forward(self, features):
+        return self.model(features)
 
     def training_step(self, batch, batch_idx):
-        logits = self(self.graph, self.features)
+        logits = self(self.features)
         loss = self._calculate_loss(logits, self.train_idx)
         self.log("train_loss", loss, prog_bar=True)
         self.train_losses.append(loss.detach().cpu().item())
         return loss
 
     def validation_step(self, batch, batch_idx):
-        logits = self(self.graph, self.features)
+        logits = self(self.features)
         self.validation_step_outputs.append(
             {"logits": logits[self.val_idx], "labels": self.labels[self.val_idx]}
         )
@@ -111,7 +112,7 @@ class GraphTransformerPL(pl.LightningModule):
             self.val_metrics["auc"].append(metrics["auc"])
 
     def test_step(self, batch, batch_idx):
-        logits = self(self.graph, self.features)
+        logits = self(self.features)
         self.test_step_outputs.append(
             {"logits": logits[self.test_idx], "labels": self.labels[self.test_idx]}
         )
@@ -178,7 +179,7 @@ class GraphTransformerPL(pl.LightningModule):
 
     def plot_confusion_matrix(self, split="test", save_dir=None):
         idx = getattr(self, f"{split}_idx").to(self._device)
-        logits = self(self.graph.to(self._device), self.features.to(self._device))[idx]
+        logits = self(self.features.to(self._device))[idx]
         labels = self.labels[idx].cpu().numpy()
 
         if self.is_binary:

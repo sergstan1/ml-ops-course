@@ -1,10 +1,15 @@
 import os
 
+import dgl
 import dvc.api
 import hydra
+import mlflow.pytorch
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from mlflow.models.signature import ModelSignature
+from mlflow.pytorch import get_default_pip_requirements
+from mlflow.types.schema import ColSpec, Schema
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import MLFlowLogger
@@ -12,6 +17,18 @@ from pytorch_lightning.loggers import MLFlowLogger
 from .modules.dgl_attention_module import DGLAttentionModule
 from .pl_wrapper import GraphTransformerPL
 from .wiki_cs_dataset import WikiCSDataset
+
+
+class ServingModel(torch.nn.Module):
+    def __init__(self, model, graph):
+        super().__init__()
+        self.model = model
+        self.graph = graph
+
+    def forward(self, features):
+        device = next(self.model.parameters()).device
+        self.graph = self.graph.to(device)
+        return self.model(self.graph, features)
 
 
 class WikiCSTrainer:
@@ -64,19 +81,79 @@ class WikiCSTrainer:
             num_workers=self.cfg.train.num_workers,
         ).to(device)
 
-        trainer = self._configure_trainer(
-            tracking_uri, save_dir_plots, save_dir_model, device, mlflow_logger
+        trainer, checkpoint_cb = self._configure_trainer(
+            tracking_uri,
+            save_dir_plots,
+            save_dir_model,
+            device,
+            mlflow_logger,
+            dataset,
         )
 
         trainer.fit(model)
         trainer.test(model)
 
-        if save_dir_plots is not None:
-            model.plot_training_curve(save_dir_plots)
-            model.plot_validation_metrics(save_dir_plots)
-            model.plot_confusion_matrix("test", save_dir_plots)
-            if model.is_binary:
-                model.plot_confusion_matrix("val", save_dir_plots)
+        if mlflow_logger is not None:
+            if checkpoint_cb.best_model_path:
+                try:
+                    best_model_wrapper = GraphTransformerPL.load_from_checkpoint(
+                        checkpoint_path=checkpoint_cb.best_model_path,
+                        dataset=dataset,
+                        attention_module=DGLAttentionModule,
+                        num_layers=self.cfg.model.num_layers,
+                        input_dim=dataset.features.size(1),
+                        hidden_dim=self.cfg.model.hidden_dim,
+                        num_heads=self.cfg.model.num_heads,
+                        hidden_dim_multiplier=self.cfg.model.hidden_dim_multiplier,
+                        dropout=self.cfg.model.dropout,
+                        lr=self.cfg.model.lr,
+                        device="cpu",
+                        num_workers=self.cfg.train.num_workers,
+                    )
+                    best_pure_model = best_model_wrapper.model
+
+                    input_schema = Schema(
+                        [
+                            ColSpec(type="double", name="node_features"),
+                        ]
+                    )
+                    output_schema = Schema(
+                        [
+                            ColSpec(type="double", name="logits"),
+                        ]
+                    )
+                    signature = ModelSignature(
+                        inputs=input_schema, outputs=output_schema
+                    )
+
+                    serving_model = ServingModel(best_pure_model, dataset.graph)
+
+                    default_reqs = get_default_pip_requirements()
+                    dgl_version = dgl.__version__
+                    pip_reqs = [
+                        f"dgl=={dgl_version}" if "dgl" in req else req
+                        for req in default_reqs
+                    ]
+
+                    with mlflow.start_run(run_id=mlflow_logger.run_id):
+                        mlflow.pytorch.log_model(
+                            pytorch_model=serving_model,
+                            artifact_path="best_model",
+                            signature=signature,
+                            pip_requirements=pip_reqs,
+                        )
+                except Exception as exception_name:
+                    print(f"Error logging best model to MLflow: {str(exception_name)}")
+
+            if save_dir_model and os.path.exists(save_dir_model):
+                try:
+                    with mlflow.start_run(run_id=mlflow_logger.run_id):
+                        mlflow.log_artifacts(
+                            local_dir=save_dir_model,
+                            artifact_path="final_model_artifacts",
+                        )
+                except Exception as exception_name:
+                    print(f"Error logging artifacts to MLflow: {str(exception_name)}")
 
         return model.model.cpu()
 
@@ -96,7 +173,13 @@ class WikiCSTrainer:
         return train_idx, val_idx, test_idx
 
     def _configure_trainer(
-        self, tracking_uri, save_dir_plots, save_dir_model, device, mlflow_logger
+        self,
+        tracking_uri,
+        save_dir_plots,
+        save_dir_model,
+        device,
+        mlflow_logger,
+        dataset,
     ):
         checkpoint_cb = ModelCheckpoint(
             monitor="val_f1",
@@ -107,7 +190,9 @@ class WikiCSTrainer:
         )
 
         callback = VisualizationCallback(
-            save_dir_plots=save_dir_plots, save_dir_model=save_dir_model
+            save_dir_plots=save_dir_plots,
+            save_dir_model=save_dir_model,
+            dataset=dataset,
         )
 
         if tracking_uri is not None:
@@ -120,7 +205,7 @@ class WikiCSTrainer:
                 log_every_n_steps=1,
                 logger=mlflow_logger,
             )
-        elif tracking_uri is None:
+        else:
             trainer = pl.Trainer(
                 max_steps=self.cfg.train.num_steps,
                 val_check_interval=1,
@@ -130,18 +215,18 @@ class WikiCSTrainer:
                 log_every_n_steps=1,
             )
 
-        return trainer
+        return trainer, checkpoint_cb
 
 
 class VisualizationCallback(pl.Callback):
-    def __init__(self, save_dir_plots=None, save_dir_model=None):
+    def __init__(self, save_dir_plots=None, save_dir_model=None, dataset=None):
         self.save_dir_plots = save_dir_plots
         self.save_dir_model = save_dir_model
+        self.dataset = dataset
+        self.original_device = None
 
     def on_train_end(self, trainer, pl_module):
-        if self.save_dir_model is not None:
-            final_model_path = os.path.join(self.save_dir_model, "final_model.pth")
-            torch.save(pl_module.model.state_dict(), final_model_path)
+        self.original_device = next(pl_module.model.parameters()).device
 
         if self.save_dir_plots is not None:
             pl_module.plot_training_curve(self.save_dir_plots)
@@ -149,6 +234,50 @@ class VisualizationCallback(pl.Callback):
             pl_module.plot_confusion_matrix("test", self.save_dir_plots)
             if pl_module.is_binary:
                 pl_module.plot_confusion_matrix("val", self.save_dir_plots)
+
+        if self.save_dir_model is not None:
+            final_model_path = os.path.join(self.save_dir_model, "final_model.pth")
+            torch.save(pl_module.model.state_dict(), final_model_path)
+
+            onnx_path = os.path.join(self.save_dir_model, "model.onnx")
+            try:
+                import warnings
+
+                from torch.jit import TracerWarning
+
+                with warnings.catch_warnings():
+                    # TracerWarning is not fault of this code,
+                    # the source is onnx disgrace for dgl library
+                    warnings.simplefilter("ignore", category=TracerWarning)
+
+                    graph_cpu = self.dataset.graph.to("cpu")
+                    num_nodes = graph_cpu.number_of_nodes()
+                    feature_dim = self.dataset.features.size(1)
+                    dummy_input = torch.randn(num_nodes, feature_dim).to("cpu")
+                    pl_module.model.graph = pl_module.model.graph.to("cpu")
+
+                    torch.onnx.export(
+                        pl_module.model.to("cpu"),
+                        dummy_input,
+                        onnx_path,
+                        input_names=["node_features"],
+                        output_names=["logits"],
+                    )
+                    print(f"ONNX model saved to {onnx_path}")
+
+                    edges_src, edges_dst = self.dataset.graph.edges()
+                    torch.save(
+                        edges_src, os.path.join(self.save_dir_model, "edges_src.pt")
+                    )
+                    torch.save(
+                        edges_dst, os.path.join(self.save_dir_model, "edges_dst.pt")
+                    )
+            except Exception as e:
+                print(f"ONNX export failed: {e}")
+            finally:
+                pl_module.model.to(self.original_device)
+                pl_module.model.graph = pl_module.model.graph.to(self.original_device)
+                self.dataset.graph = self.dataset.graph.to(self.original_device)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")

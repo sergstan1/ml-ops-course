@@ -1,4 +1,4 @@
-num_steps: 100
+num_steps: 10
 batch_size: 64
 num_workers: 15
 data_path: "data/wikics/raw/data.json"

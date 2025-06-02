@@ -31,8 +31,10 @@ class GraphTransformer(nn.Module):
         hidden_dim_multiplier,
         num_classes,
         dropout,
+        graph,
     ):
         super().__init__()
+        self.num_classes = num_classes
 
         self.input_proj = nn.Linear(input_dim, hidden_dim)
         self.transformer_blocks = nn.ModuleList(
@@ -48,13 +50,17 @@ class GraphTransformer(nn.Module):
             ]
         )
         self.final_norm = nn.LayerNorm(hidden_dim)
-        self.output_head = nn.Linear(hidden_dim, 1 if num_classes == 2 else num_classes)
 
-    def forward(self, graph, x):
+        if num_classes == 2:
+            self.output_head = nn.Linear(hidden_dim, 1)
+        else:
+            self.output_head = nn.Linear(hidden_dim, num_classes)
+        self.graph = graph
+
+    def forward(self, x):
         """Forward pass of the graph transformer.
 
         Args:
-            graph (DGLGraph): Input graph structure
             x (Tensor): Node features of shape (N, input_dim)
 
         Returns:
@@ -62,7 +68,8 @@ class GraphTransformer(nn.Module):
         """
         x = self.input_proj(x)
         for block in self.transformer_blocks:
-            x = block(graph, x)
+            x = block(self.graph, x)
         x = self.final_norm(x)
         logits = self.output_head(x)
-        return logits.squeeze(-1) if logits.size(-1) == 1 else logits
+
+        return logits
