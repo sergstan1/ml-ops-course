@@ -31,5 +31,16 @@ class DataDownloader:
         import gdown
 
         self.run_command(f"gdown {self.dgl_id}")
-        print("Downloading dvc data...")
         gdown.download_folder(self.dvc_url, quiet=True)
+
+
+def main():
+    downloader = DataDownloader(
+        "152ftcEEKftLs3WqUGKvaPo8H_gbneO53",
+        "https://drive.google.com/drive/folders/146jwbgPPPmPC2v582SxlwW_e-N2XsjEZ?usp=drive_link",
+    )
+    downloader.download_data()
+
+
+if __name__ == "__main__":
+    main()
