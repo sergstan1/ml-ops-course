@@ -69,6 +69,13 @@ poetry run python3 -m wikics_segment_prediction.download_data
 poetry install
 ```
 
+5. Initialize dvc remotes:
+
+```bash
+dvc remote add -f data dvc_storage/data
+dvc remote add -f models dvc_storage/models
+```
+
 ### Train
 
 To train the model, follow these steps:
