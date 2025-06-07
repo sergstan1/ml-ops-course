@@ -130,6 +130,11 @@ ONNX export includes:
 * `node_features` input
 * `logits` output
 
+To convert to tensorrt write:
+```bash
+poetry run python3 wikics_segment_prediction/scripts/convert_to_tensorrt.py --onnx_path=models/model.onnx --output_path=models/engine.trt
+```
+
 Logged to MLflow with dependencies if configured.
 
 ---
