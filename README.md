@@ -47,25 +47,27 @@ git clone https://github.com/sergstan1/wikics-segment-prediction.git
 cd wikics-segment-prediction
 ```
 
-2. Install dependencies:
-
-```bash
-poetry install
-```
-
-3. Activate the environment:
+2. Activate the environment:
 
 ```bash
 poetry shell
 ```
-
-4. (Optional) Pull data and artifacts using DVC:
-
+or for Poetry>2.0.0
 ```bash
-dvc pull
+poetry env activate
 ```
 
----
+3. Download dgl and dvc data:
+
+```bash
+poetry run python3 -m wikics_segment_prediction.commands download
+```
+
+4. Install dependencies:
+
+```bash
+poetry install
+```
 
 ### Train
 
