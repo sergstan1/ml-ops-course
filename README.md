@@ -91,28 +91,27 @@ Configure paths in `conf/train.yaml` or override via CLI.
 
 #### 2. Run Training
 
-Default run:
+By default, mlflow server is supposed (you can turn it off in the configs.mlflow), thus, you need to run:
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.train
+poetry run mlflow server --host 127.0.0.1 --port 8080
+```
+
+Default training run:
+
+```bash
+poetry run python3 -m wikics_segment_prediction.commands train
 ```
 
 With specific config overrides:
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.train \
+poetry run python3 -m wikics_segment_prediction.commands train \
   train.data_path=<path_to_data> \
   settings.train_idx_path=<path_to_train_idx> \
   settings.val_idx_path=<path_to_val_idx> \
-  settings.test_idx_path=<path_to_test_idx>
-```
-
-To enable MLflow tracking:
-
-```bash
-poetry run python3 -m wikics_segment_prediction.train \
-  mlflow.tracking_uri=http://<mlflow-uri> \
-  mlflow.experiment_name=wiki_cs_experiment
+  settings.test_idx_path=<path_to_test_idx> \
+  settings.device=<your_device>
 ```
 
 ---
