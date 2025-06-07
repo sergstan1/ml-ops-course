@@ -139,7 +139,7 @@ Logged to MLflow with dependencies if configured.
 Inference assumes a trained model and valid test data.
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.infer
+poetry run python3 -m wikics_segment_prediction.commands infer
 ```
 
 Required configuration:
