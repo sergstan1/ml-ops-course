@@ -31,6 +31,7 @@ class DataDownloader:
         import gdown
 
         self.run_command(f"gdown {self.dgl_id}")
+        print("Downloading dvc data...")
         gdown.download_folder(self.dvc_url, quiet=True)
 
 
