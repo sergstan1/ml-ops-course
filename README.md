@@ -159,7 +159,8 @@ Required configuration:
 
 ---
 
-### Infer
+### Baseline
+Baseline represents a linear regression model on a DeepWalk embeddings of a graph.
 To run baseline type the following command:
 ```bash
 poetry run python3 -m wikics_segment_prediction.baseline
