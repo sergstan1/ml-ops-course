@@ -60,7 +60,7 @@ poetry env activate
 3. Download dgl and dvc data:
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.commands download
+poetry run python3 -m wikics_segment_prediction.download_data
 ```
 
 4. Install dependencies:
