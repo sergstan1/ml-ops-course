@@ -4,34 +4,41 @@
 
 This project focuses on predicting the segment membership of computer science-related Wikipedia pages using a graph-based structure. Each node represents a Wikipedia page, and each edge represents a hyperlink between pages. The main goal is to classify each page into one of the defined CS topic segments.
 
-**Key Features:**
+### Key Features
 
-- Predicts labels for each segment/class using custom GNN
-- Visualizations of training results and segment distributions
-- Modular and extendable architecture
+* Predicts labels for each segment/class using a custom GNN based on DGL
+* Visualization of model performance and segment distributions
+* Support for training, inference, and production-ready export (e.g., ONNX)
+* Modular and extendable codebase
 
 ## Dataset
 
 The project uses the [WikiCS dataset](https://github.com/pmernyei/wiki-cs-dataset), which consists of:
 
-- 11,701 Wikipedia pages as nodes
-- 215,000 edges representing hyperlinks
-- 10 semantic segments (classes) related to computer science disciplines
+* 11,701 Wikipedia pages as nodes
+* 215,000 edges representing hyperlinks
+* 10 semantic segments (classes) related to computer science disciplines
 
-The dataset can be accessed using `torch_geometric.datasets.WikiCS`. Note that it includes 20 distinct training/validation/test splits for robust evaluation.
+The dataset is accessible via `torch_geometric.datasets.WikiCS`, with 20 predefined train/val/test splits.
 
-## Setup
+---
 
-### Requirements
+## Technical Details
 
-- Python 3.12
-- [Poetry](https://python-poetry.org/docs/) for environment management
-- PyTorch
-- PyTorch Geometric
-- DGL (Deep Graph Library)
-- DVC (optional, for data version control)
+### Setup
 
-### Installation Steps
+#### Requirements
+
+* Python 3.12
+* [Poetry](https://python-poetry.org/docs/) (for dependency management)
+* PyTorch
+* DGL (Deep Graph Library)
+* PyTorch Lightning
+* Hydra
+* MLflow (optional)
+* DVC (for data versioning)
+
+#### Installation
 
 1. Clone the repository:
 
@@ -40,66 +47,105 @@ git clone https://github.com/sergstan1/wikics-segment-prediction.git
 cd wikics-segment-prediction
 ```
 
-2. Install dependencies using Poetry:
+2. Install dependencies:
 
 ```bash
 poetry install
 ```
 
-3. Activate the virtual environment:
+3. Activate the environment:
 
 ```bash
 poetry shell
 ```
 
-4. Pull data and models via DVC:
+4. (Optional) Pull data and artifacts using DVC:
 
 ```bash
 dvc pull
 ```
 
-## Train
+---
 
-To train a model from scratch, follow these steps:
+### Train
 
-### 1. Data Loading
+To train the model, follow these steps:
 
-The dataset is downloaded using a path to a json file with features and edge indices.
-Also you need to set a hydra config with path to train, val, test indices, stored as a pd.DataFrame with "index" column.
+#### 1. Prepare Data and Config
 
-### 2. Training the Model
+Ensure your data is formatted as:
 
-To train the default model:
+* `data_path`: JSON with features and edge indices
+* Index files (`train_idx_path`, `val_idx_path`, `test_idx_path`): parquet files with a column named `index`
+
+Configure paths in `conf/train.yaml` or override via CLI.
+
+#### 2. Run Training
+
+Default run:
 
 ```bash
 poetry run python3 -m wikics_segment_prediction.train
 ```
 
-If you want to run with a specific configuration, e.g. path to your data:
+With specific config overrides:
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.train train.data_path=<data_path>
+poetry run python3 -m wikics_segment_prediction.train \
+  train.data_path=<path_to_data> \
+  settings.train_idx_path=<path_to_train_idx> \
+  settings.val_idx_path=<path_to_val_idx> \
+  settings.test_idx_path=<path_to_test_idx>
 ```
 
-Training also supports mlflow support, however, if you do not want to use it set mlflow.tracking_uri to null.
-To set mlflow uri you can run:
+To enable MLflow tracking:
 
 ```bash
-poetry run python3 -m wikics_segment_prediction.train mlflow.tracking_uri=<your_uri>
+poetry run python3 -m wikics_segment_prediction.train \
+  mlflow.tracking_uri=http://<mlflow-uri> \
+  mlflow.experiment_name=wiki_cs_experiment
 ```
 
-## Infer
+---
 
-After training the model, you can use it for inference on new data.
-Set a path to test data in hydra configuration, the same as in train.
+### Production Preparation
 
-### Running Inference
+After training:
+
+* The best model is saved as `final_model.pth`
+* Additional plots and metrics are saved in `save_dir_plots`
+* The model is exported to ONNX format as `model.onnx`
+* Graph structure saved as `edges_src.pt` and `edges_dst.pt`
+
+ONNX export includes:
+
+* `node_features` input
+* `logits` output
+
+Logged to MLflow with dependencies if configured.
+
+---
+
+### Infer
+
+Inference assumes a trained model and valid test data.
 
 ```bash
 poetry run python3 -m wikics_segment_prediction.infer
 ```
 
-This will output predictions for each class per node.
+Required configuration:
+
+* Same as training: `data_path`, `test_idx_path`
+* Output: predictions per node saved to file or stdout depending on config
+
+#### Inference Input Format
+
+* Features: node feature matrix (same as training)
+* Graph: adjacency as edge index
+* Indices: test node indices in parquet with "index" column
+
+---
 
 ## Contact
 
