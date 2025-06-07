@@ -6,12 +6,8 @@
 
 This project focuses on predicting the segment membership of computer science-related Wikipedia pages using a graph-based structure. Each node represents a Wikipedia page, and each edge represents a hyperlink between pages. The main goal is to classify each page into one of the defined CS topic segments.
 
-### Key Features
-
-* Predicts labels for each segment/class using a custom GNN based on DGL
-* Visualization of model performance and segment distributions
-* Support for training, inference, and production-ready export (e.g., ONNX)
-* Modular and extendable codebase
+**Comparison of Approaches**:
+The main graph-based approach achieves a test F1-score of **0.766**, significantly outperforming the baseline model's F1-score of **0.236**. This represents a **3.25× improvement** in classification performance, demonstrating the effectiveness of our GNN architecture for segment prediction on the WikiCS dataset. The substantial performance gap highlights the limitations of simple baseline methods when handling complex graph-structured Wikipedia data, where capturing topological relationships is essential for accurate segment classification.
 
 ## Dataset
 
@@ -163,6 +159,11 @@ Required configuration:
 
 ---
 
+### Infer
+To run baseline type the following command:
+```bash
+poetry run python3 -m wikics_segment_prediction.baseline
+```
 ## Contact
 
 Project author: [sergstan1](https://github.com/sergstan1)
