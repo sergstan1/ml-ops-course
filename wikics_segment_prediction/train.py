@@ -2,12 +2,10 @@ from pathlib import Path
 
 import dgl
 import dvc.api
-import fire
 import mlflow.pytorch
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from hydra import compose, initialize
 from mlflow.models.signature import ModelSignature
 from mlflow.pytorch import get_default_pip_requirements
 from mlflow.types.schema import ColSpec, Schema
@@ -290,15 +288,3 @@ def run_training(cfg: DictConfig):
         model_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(trained_model.state_dict(), model_path)
     print(f"Model saved to {model_path}")
-
-
-def main_fire(*overrides, config_path: str = "configs", config_name: str = "config"):
-    with initialize(
-        version_base=None, config_path=config_path, job_name="wiki_cs_train"
-    ):
-        cfg = compose(config_name=config_name, overrides=list(overrides))
-        run_training(cfg)
-
-
-if __name__ == "__main__":
-    fire.Fire(main_fire)

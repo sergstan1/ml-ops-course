@@ -8,7 +8,6 @@ class DataDownloader:
         self.dvc_url = dvc_url
 
     def run_command(self, command, capture_output=False):
-        """Run a shell command and return its output."""
         try:
             result = subprocess.run(
                 command,
@@ -19,13 +18,12 @@ class DataDownloader:
             )
             return result.stdout if capture_output else None
         except subprocess.CalledProcessError as e:
-            print(f"❌ Error running command: {command}")
+            print(f"Error running command: {command}")
             print(f"Error details: {e.stderr}")
             sys.exit(1)
 
     def install_gdown(self):
-        """Install gdown."""
-        print("⏳ Installing gdown...")
+        print("Installing gdown...")
         self.run_command(f"{sys.executable} -m pip install gdown")
 
     def download_data(self) -> None:
@@ -33,16 +31,5 @@ class DataDownloader:
         import gdown
 
         self.run_command(f"gdown {self.dgl_id}")
+        print("Downloading dvc data...")
         gdown.download_folder(self.dvc_url, quiet=True)
-
-
-def main():
-    downloader = DataDownloader(
-        "152ftcEEKftLs3WqUGKvaPo8H_gbneO53",
-        "https://drive.google.com/drive/folders/146jwbgPPPmPC2v582SxlwW_e-N2XsjEZ?usp=drive_link",
-    )
-    downloader.download_data()
-
-
-if __name__ == "__main__":
-    main()
