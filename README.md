@@ -1,5 +1,7 @@
 # WikiCS: Segment Prediction for Computer Science Wikipedia Pages
 
+!!ONLY FOR LINUX (DGL library supports only this system)!!
+
 ## Project Overview
 
 This project focuses on predicting the segment membership of computer science-related Wikipedia pages using a graph-based structure. Each node represents a Wikipedia page, and each edge represents a hyperlink between pages. The main goal is to classify each page into one of the defined CS topic segments.
@@ -37,6 +39,7 @@ The dataset is accessible via `torch_geometric.datasets.WikiCS`, with 20 predefi
 * Hydra
 * MLflow (optional)
 * DVC (for data versioning)
+* Linux
 
 #### Installation
 
