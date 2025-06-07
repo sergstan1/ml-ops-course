@@ -30,8 +30,6 @@ dependencies = [
     "tensorrt (>=10.11.0.33,<11.0.0.0)",
     "fire (>=0.7.0,<0.8.0)",
 ]
-[tool.poetry.dependencies]
-dgl = {file = "dgl-2.4.0+cu121-cp312-cp312-manylinux1_x86_64.whl", optional = true}
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
